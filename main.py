@@ -90,9 +90,12 @@ class Programmer:
         """
         cmd = [
             "pymcuprog", "write",
-            "-f", file_path,
+            "-t", "uart",
+            "-u", "/dev/ttyAMA0",
             "-d", "attiny1616",
-            "-p", "updi",
+            "-f", file_path,
+            "--erase",
+            "--verify",
         ]
         # デバッグ用: 実行コマンドを表示
         print(f"実行コマンド: {' '.join(cmd)}")
