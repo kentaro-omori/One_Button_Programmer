@@ -94,12 +94,18 @@ class Programmer:
             "-d", "attiny1616",
             "-p", "updi",
         ]
-        try:
-            subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            return True
-        except subprocess.CalledProcessError as e:
-            print(f"プログラミングエラー: {e.stderr.decode().strip()}")
+        # デバッグ用: 実行コマンドを表示
+        print(f"実行コマンド: {' '.join(cmd)}")
+        # コマンド実行 (出力をキャプチャ)
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if result.returncode != 0:
+            print("プログラミングエラー:")
+            if result.stdout:
+                print("STDOUT:", result.stdout)
+            if result.stderr:
+                print("STDERR:", result.stderr)
             return False
+        return True
 
 
 def main():
