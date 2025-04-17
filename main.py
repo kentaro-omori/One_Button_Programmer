@@ -48,8 +48,11 @@ class Buzzer:
         Args:
             duration_sec (float): 鳴動時間（秒）
         """
-        GPIO.output(self.pin, GPIO.HIGH)
+        # 440Hz の PWM でブザーを鳴動
+        pwm = GPIO.PWM(self.pin, 440)
+        pwm.start(50)  # デューティ比 50%
         time.sleep(duration_sec)
+        pwm.stop()
         GPIO.output(self.pin, GPIO.LOW)
 
 
