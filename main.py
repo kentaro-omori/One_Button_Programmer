@@ -9,6 +9,7 @@ import subprocess
 import glob
 import RPi.GPIO as GPIO
 import smbus
+import sys
 
 class LED:
     """GPIO ピン制御用の LED クラス"""
@@ -171,7 +172,7 @@ class Programmer:
             bool: 成功時 True、失敗時 False
         """
         cmd = [
-            "pymcuprog", "write",
+            sys.executable, "-m", "pymcuprog", "write",
             "-t", "uart",
             "-u", "/dev/ttyAMA0",
             "-d", "attiny1616",
