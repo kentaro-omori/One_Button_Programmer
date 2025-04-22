@@ -10,6 +10,7 @@ import glob
 import RPi.GPIO as GPIO
 import smbus
 import sys
+import shutil
 
 class LED:
     """GPIO ピン制御用の LED クラス"""
@@ -171,8 +172,13 @@ class Programmer:
         Returns:
             bool: 成功時 True、失敗時 False
         """
-        cmd = [
-            sys.executable, "-m", "pymcuprog", "write",
+        # pymcuprog 実行ファイルを検出
+        script = shutil.which("pymcuprog")
+        if script:
+            base_cmd = [script, "write"]
+        else:
+            base_cmd = [sys.executable, "-m", "pymcuprog", "write"]
+        cmd = base_cmd + [
             "-t", "uart",
             "-u", "/dev/ttyAMA0",
             "-d", "attiny1616",
