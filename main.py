@@ -230,8 +230,8 @@ def main():
         names = [os.path.basename(f) for f in hex_files]
         cur = names[selected_idx]
         nxt = names[(selected_idx+1) % len(names)]
-        # 二行表示: 1行目に選択ファイル (▶付き), 2行目に次のファイル
-        lcd.display(("▶"+cur)[:8].ljust(8), line=0)
+        # 二行表示: 1行目に選択ファイル (@付き), 2行目に次のファイル
+        lcd.display(("@"+cur)[:8].ljust(8), line=0)
         lcd.display(nxt[:8].ljust(8), line=1)
     else:
         lcd.display("No HEX files", line=0)
@@ -246,8 +246,8 @@ def main():
                     selected_idx = (selected_idx + 1) % len(names)
                     cur = names[selected_idx]
                     nxt = names[(selected_idx+1) % len(names)]
-                    # スクロール用文字列 (▶付き)
-                    scroll_str = "▶"+cur + " " * 8
+                    # スクロール用文字列 (@付き)
+                    scroll_str = "@"+cur + " " * 8
                     # 繰り返しスクロール (1行目のみ)
                     for _ in range(2):
                         for i in range(len(scroll_str) - 7):
