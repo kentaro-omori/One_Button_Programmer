@@ -257,7 +257,7 @@ def main():
                             # 0.3秒間を0.05秒刻みでチェック
                             for _ in range(6):
                                 time.sleep(0.05)
-                                if button.is_pressed():
+                                if button2.is_pressed():
                                     stop_scroll = True
                                     break
                             if stop_scroll:
