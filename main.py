@@ -246,28 +246,35 @@ def main():
                     selected_idx = (selected_idx + 1) % len(names)
                     cur = names[selected_idx]
                     nxt = names[(selected_idx+1) % len(names)]
-                    # スクロール用文字列 (@付き)
+                    # SW2押下後のリリース待機
+                    while button2.is_pressed():
+                        time.sleep(0.05)
+                    # ファイル名スクロール表示 (1行目のみ), SW2押下で中断
                     scroll_str = "@" + cur + " " * 8
-                    # 繰り返しスクロール (1行目のみ), スイッチ1で中断可能
-                    stop_scroll = False
-                    for _ in range(2):
-                        for i in range(len(scroll_str) - 7):
-                            lcd.display(scroll_str[i:i+8], line=0)
-                            lcd.display(nxt[:8].ljust(8), line=1)
-                            # 0.3秒間を0.05秒刻みでチェック
-                            for _ in range(6):
-                                time.sleep(0.05)
-                                if button2.is_pressed():
-                                    stop_scroll = True
+                    if len(cur) <= 8:
+                        lcd.display(scroll_str[:8], line=0)
+                        lcd.display(nxt[:8].ljust(8), line=1)
+                    else:
+                        stop_scroll = False
+                        # SW2が押されるまで繰り返しスクロール
+                        while not stop_scroll:
+                            for i in range(len(scroll_str) - 7):
+                                lcd.display(scroll_str[i:i+8], line=0)
+                                lcd.display(nxt[:8].ljust(8), line=1)
+                                # 0.3秒間を0.01秒刻みでSW2チェック
+                                start = time.time()
+                                while time.time() - start < 0.3:
+                                    if button2.is_pressed():
+                                        stop_scroll = True
+                                        break
+                                    time.sleep(0.01)
+                                if stop_scroll:
                                     break
-                            if stop_scroll:
-                                break
-                        if stop_scroll:
-                            break
-                    # 最終位置表示
-                    lcd.display(scroll_str[:8], line=0)
-                    lcd.display(nxt[:8].ljust(8), line=1)
-                time.sleep(0.2)
+                        # 最終表示
+                        lcd.display(scroll_str[:8], line=0)
+                        lcd.display(nxt[:8].ljust(8), line=1)
+
+            time.sleep(0.2)
 
             if button.is_pressed():
                 # 書込み開始
