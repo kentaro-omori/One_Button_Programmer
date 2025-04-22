@@ -108,21 +108,34 @@ class LCD:
             GPIO.setup(backlight_pin, GPIO.OUT)
             GPIO.output(backlight_pin, GPIO.HIGH)
         time.sleep(0.05)
-        # 初期化シーケンス
-        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, self.CMD_FUNCTIONSET)
+        # 初期化シーケンス (AQM0802A / ST7032)
+        # 拡張命令セットモード
+        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, 0x39)
         time.sleep(0.005)
-        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, self.CMD_BIAS_OSC)
+        # 内部発振周波数設定
+        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, 0x14)
         time.sleep(0.005)
-        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, self.CMD_CONTRAST_SET | 0x0F)
+        # コントラスト設定下位4bit
+        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, 0x70 | 0x0F)
         time.sleep(0.005)
-        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, self.CMD_POWER_ICON_CTRL | 0x04)
+        # コントラスト設定上位2bit + ブースタON
+        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, 0x5C | 0x04)
         time.sleep(0.005)
-        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, self.CMD_FOLLOWER_CTRL | 0x04)
+        # フォロワー制御
+        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, 0x6C)
         time.sleep(0.2)
-        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, self.CMD_DISPLAY_ON)
+        # 標準命令セットに戻す
+        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, 0x38)
         time.sleep(0.005)
-        self.clear()
-        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, self.CMD_ENTRY_MODE)
+        # 表示オン, カーソルオフ
+        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, 0x0C)
+        time.sleep(0.005)
+        # 表示クリア
+        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, 0x01)
+        time.sleep(0.002)
+        # エントリモード設定
+        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, 0x06)
+        time.sleep(0.005)
 
     def clear(self):
         """LCDの表示をクリアします."""
