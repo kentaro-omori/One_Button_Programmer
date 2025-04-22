@@ -8,7 +8,7 @@ import time
 import subprocess
 import glob
 import RPi.GPIO as GPIO
-
+import smbus
 
 class LED:
     """GPIO ピン制御用の LED クラス"""
@@ -81,6 +81,67 @@ class Button:
         return False
 
 
+class LCD:
+    """I2C接続のLCDディスプレイクラス"""
+    LCD_CONTROL_REGISTER = 0x00
+    LCD_DATA_REGISTER = 0x40
+    CMD_FUNCTIONSET = 0x38
+    CMD_BIAS_OSC = 0x14
+    CMD_CONTRAST_SET = 0x70
+    CMD_POWER_ICON_CTRL = 0x5C
+    CMD_FOLLOWER_CTRL = 0x6C
+    CMD_DISPLAY_ON = 0x0C
+    CMD_CLEAR = 0x01
+    CMD_ENTRY_MODE = 0x06
+
+    def __init__(self, address=0x3e, backlight_pin=None, busnum=1):
+        """
+        Args:
+            address (int): I2Cアドレス
+            backlight_pin (int): バックライト制御GPIOピン番号
+            busnum (int): I2Cバス番号
+        """
+        self.address = address
+        self.bus = smbus.SMBus(busnum)
+        self.backlight_pin = backlight_pin
+        if backlight_pin is not None:
+            GPIO.setup(backlight_pin, GPIO.OUT)
+            GPIO.output(backlight_pin, GPIO.HIGH)
+        time.sleep(0.05)
+        # 初期化シーケンス
+        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, self.CMD_FUNCTIONSET)
+        time.sleep(0.005)
+        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, self.CMD_BIAS_OSC)
+        time.sleep(0.005)
+        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, self.CMD_CONTRAST_SET | 0x0F)
+        time.sleep(0.005)
+        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, self.CMD_POWER_ICON_CTRL | 0x04)
+        time.sleep(0.005)
+        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, self.CMD_FOLLOWER_CTRL | 0x04)
+        time.sleep(0.2)
+        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, self.CMD_DISPLAY_ON)
+        time.sleep(0.005)
+        self.clear()
+        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, self.CMD_ENTRY_MODE)
+
+    def clear(self):
+        """LCDの表示をクリアします."""
+        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, self.CMD_CLEAR)
+        time.sleep(0.002)
+
+    def display(self, text, line=0):
+        """指定行にテキストを表示します."""
+        addr = 0x80 + (0x40 * line)
+        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, addr)
+        for c in text.ljust(16)[:16]:
+            self.bus.write_byte_data(self.address, self.LCD_DATA_REGISTER, ord(c))
+
+    def backlight(self, on):
+        """バックライトをオン/オフします."""
+        if self.backlight_pin is not None:
+            GPIO.output(self.backlight_pin, GPIO.HIGH if on else GPIO.LOW)
+
+
 class Programmer:
     """pymcuprog で ATtiny1616 を UPDI 経由で書き込むクラス"""
 
@@ -124,28 +185,44 @@ def main():
     buzzer = Buzzer(23)
     button = Button(24)
     programmer = Programmer()
+    button2 = Button(21)
+    lcd = LCD(address=0x3e, backlight_pin=26)
 
     # 起動時状態: 緑 LED 点灯
     green_led.on()
     yellow_led.off()
 
+    # 初期hex選択
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    hex_dir = os.path.join(base_dir, "hex")
+    os.makedirs(hex_dir, exist_ok=True)
+    hex_files = sorted(glob.glob(os.path.join(hex_dir, "*.hex")))
+    selected_idx = 0
+    if hex_files:
+        lcd.display(os.path.basename(hex_files[selected_idx]), line=0)
+    else:
+        lcd.display("No HEX files", line=0)
+
     try:
         while True:
+            # hexファイル選択: スイッチ2押下で次を表示
+            if button2.is_pressed():
+                hex_files = sorted(glob.glob(os.path.join(hex_dir, "*.hex")))
+                if hex_files:
+                    selected_idx = (selected_idx + 1) % len(hex_files)
+                    lcd.display(os.path.basename(hex_files[selected_idx]), line=0)
+                time.sleep(0.2)
+
             if button.is_pressed():
                 # 書込み開始
                 green_led.off()
                 yellow_led.on()
 
-                # hex ファイル検出
-                base_dir = os.path.dirname(os.path.abspath(__file__))
-                hex_dir = os.path.join(base_dir, "hex")
-                os.makedirs(hex_dir, exist_ok=True)
-                hex_files = glob.glob(os.path.join(hex_dir, "*.hex"))
-
+                # 選択中のhexファイルを書込
                 if not hex_files:
-                    print("./hex に .hex ファイルが見つかりません。")
+                    print("No HEX files to program")
                 else:
-                    target = hex_files[0]
+                    target = hex_files[selected_idx]
                     programmer.write_hex(target)
 
                 # 書込み後処理
