@@ -108,46 +108,47 @@ class LCD:
             GPIO.setup(backlight_pin, GPIO.OUT)
             GPIO.output(backlight_pin, GPIO.HIGH)
         time.sleep(0.05)
-        # 初期化シーケンス (AQM0802A / ST7032)
-        # 拡張命令セットモード
-        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, 0x39)
+        # 初期化シーケンス (AQM0802A / ST7032) - 拡張命令セットモード
+        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x39])
         time.sleep(0.005)
         # 内部発振周波数設定
-        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, 0x14)
+        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x14])
         time.sleep(0.005)
         # コントラスト設定下位4bit
-        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, 0x70 | 0x0F)
+        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x70 | 0x0F])
         time.sleep(0.005)
         # コントラスト設定上位2bit + ブースタON
-        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, 0x5C | 0x04)
+        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x5C | 0x04])
         time.sleep(0.005)
         # フォロワー制御
-        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, 0x6C)
+        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x6C])
         time.sleep(0.2)
         # 標準命令セットに戻す
-        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, 0x38)
+        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x38])
         time.sleep(0.005)
         # 表示オン, カーソルオフ
-        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, 0x0C)
+        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x0C])
         time.sleep(0.005)
         # 表示クリア
-        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, 0x01)
+        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x01])
         time.sleep(0.002)
         # エントリモード設定
-        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, 0x06)
+        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x06])
         time.sleep(0.005)
 
     def clear(self):
         """LCDの表示をクリアします."""
-        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, self.CMD_CLEAR)
+        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [self.CMD_CLEAR])
         time.sleep(0.002)
 
     def display(self, text, line=0):
         """指定行にテキストを表示します."""
         addr = 0x80 + (0x40 * line)
-        self.bus.write_byte_data(self.address, self.LCD_CONTROL_REGISTER, addr)
+        # DDRAMアドレス設定
+        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [addr])
+        # データ書込み
         for c in text.ljust(16)[:16]:
-            self.bus.write_byte_data(self.address, self.LCD_DATA_REGISTER, ord(c))
+            self.bus.write_i2c_block_data(self.address, self.LCD_DATA_REGISTER, [ord(c)])
 
     def backlight(self, on):
         """バックライトをオン/オフします."""
