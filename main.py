@@ -59,24 +59,28 @@ class Buzzer:
 class Button:
     """GPIO ピン入力用のボタン クラス（簡易デバウンス付き）"""
 
-    def __init__(self, pin, bounce_time=0.01):
+    def __init__(self, pin, bounce_time=0.01, pull_up=False):
         """
         Args:
             pin (int): BCM モードの GPIO ピン番号
             bounce_time (float): デバウンス時間（秒）
+            pull_up (bool): プルアップ(True)またはプルダウン(False)設定
         """
         self.pin = pin
         self.bounce_time = bounce_time
-        GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        self.pull_up = pull_up
+        pud = GPIO.PUD_UP if pull_up else GPIO.PUD_DOWN
+        GPIO.setup(self.pin, GPIO.IN, pull_up_down=pud)
+        self.active_level = GPIO.LOW if pull_up else GPIO.HIGH
 
     def is_pressed(self):
         """
         Returns:
             bool: 押下検知時に True を返す
         """
-        if GPIO.input(self.pin) == GPIO.HIGH:
+        if GPIO.input(self.pin) == self.active_level:
             time.sleep(self.bounce_time)
-            if GPIO.input(self.pin) == GPIO.HIGH:
+            if GPIO.input(self.pin) == self.active_level:
                 return True
         return False
 
@@ -147,7 +151,7 @@ class LCD:
         # DDRAMアドレス設定
         self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [addr])
         # データ書込み
-        for c in text.ljust(16)[:16]:
+        for c in text.ljust(8)[:8]:
             self.bus.write_i2c_block_data(self.address, self.LCD_DATA_REGISTER, [ord(c)])
 
     def backlight(self, on):
@@ -199,7 +203,7 @@ def main():
     buzzer = Buzzer(23)
     button = Button(24)
     programmer = Programmer()
-    button2 = Button(21)
+    button2 = Button(21, bounce_time=0.01, pull_up=True)
     lcd = LCD(address=0x3e, backlight_pin=26)
 
     # 起動時状態: 緑 LED 点灯
@@ -224,7 +228,15 @@ def main():
                 hex_files = sorted(glob.glob(os.path.join(hex_dir, "*.hex")))
                 if hex_files:
                     selected_idx = (selected_idx + 1) % len(hex_files)
-                    lcd.display(os.path.basename(hex_files[selected_idx]), line=0)
+                    name = os.path.basename(hex_files[selected_idx])
+                    # ファイル名スクロール表示
+                    if len(name) <= 8:
+                        lcd.display(name, line=0)
+                    else:
+                        scroll_str = name + " " * 8
+                        for i in range(len(scroll_str) - 7):
+                            lcd.display(scroll_str[i:i+8], line=0)
+                            time.sleep(0.3)
                 time.sleep(0.2)
 
             if button.is_pressed():
