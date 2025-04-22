@@ -247,13 +247,23 @@ def main():
                     cur = names[selected_idx]
                     nxt = names[(selected_idx+1) % len(names)]
                     # スクロール用文字列 (@付き)
-                    scroll_str = "@"+cur + " " * 8
-                    # 繰り返しスクロール (1行目のみ)
+                    scroll_str = "@" + cur + " " * 8
+                    # 繰り返しスクロール (1行目のみ), スイッチ1で中断可能
+                    stop_scroll = False
                     for _ in range(2):
                         for i in range(len(scroll_str) - 7):
                             lcd.display(scroll_str[i:i+8], line=0)
                             lcd.display(nxt[:8].ljust(8), line=1)
-                            time.sleep(0.3)
+                            # 0.3秒間を0.05秒刻みでチェック
+                            for _ in range(6):
+                                time.sleep(0.05)
+                                if button.is_pressed():
+                                    stop_scroll = True
+                                    break
+                            if stop_scroll:
+                                break
+                        if stop_scroll:
+                            break
                     # 最終位置表示
                     lcd.display(scroll_str[:8], line=0)
                     lcd.display(nxt[:8].ljust(8), line=1)
