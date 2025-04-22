@@ -172,13 +172,16 @@ class Programmer:
         Returns:
             bool: 成功時 True、失敗時 False
         """
-        # pymcuprog 実行ファイルを検出
+        # pymcuprog コマンドを検出
         script = shutil.which("pymcuprog")
-        if script:
-            base_cmd = [script, "write"]
-        else:
-            base_cmd = [sys.executable, "-m", "pymcuprog", "write"]
-        cmd = base_cmd + [
+        if not script:
+            script = os.path.join(os.path.dirname(sys.executable), "pymcuprog")
+        # 存在・実行権限チェック
+        if not os.path.isfile(script) or not os.access(script, os.X_OK):
+            print("Error: pymcuprog command not found. Please install and ensure it's in PATH.")
+            return False
+        # コマンド構築
+        cmd = [script, "write", 
             "-t", "uart",
             "-u", "/dev/ttyAMA0",
             "-d", "attiny1616",
@@ -224,7 +227,12 @@ def main():
     hex_files = sorted(glob.glob(os.path.join(hex_dir, "*.hex")))
     selected_idx = 0
     if hex_files:
-        lcd.display(os.path.basename(hex_files[selected_idx]), line=0)
+        names = [os.path.basename(f) for f in hex_files]
+        cur = names[selected_idx]
+        nxt = names[(selected_idx+1) % len(names)]
+        # 二行表示: 1行目に選択ファイル (▶付き), 2行目に次のファイル
+        lcd.display(("▶"+cur)[:8].ljust(8), line=0)
+        lcd.display(nxt[:8].ljust(8), line=1)
     else:
         lcd.display("No HEX files", line=0)
 
@@ -234,16 +242,21 @@ def main():
             if button2.is_pressed():
                 hex_files = sorted(glob.glob(os.path.join(hex_dir, "*.hex")))
                 if hex_files:
-                    selected_idx = (selected_idx + 1) % len(hex_files)
-                    name = os.path.basename(hex_files[selected_idx])
-                    # ファイル名スクロール表示
-                    if len(name) <= 8:
-                        lcd.display(name, line=0)
-                    else:
-                        scroll_str = name + " " * 8
+                    names = [os.path.basename(f) for f in hex_files]
+                    selected_idx = (selected_idx + 1) % len(names)
+                    cur = names[selected_idx]
+                    nxt = names[(selected_idx+1) % len(names)]
+                    # スクロール用文字列 (▶付き)
+                    scroll_str = "▶"+cur + " " * 8
+                    # 繰り返しスクロール (1行目のみ)
+                    for _ in range(2):
                         for i in range(len(scroll_str) - 7):
                             lcd.display(scroll_str[i:i+8], line=0)
+                            lcd.display(nxt[:8].ljust(8), line=1)
                             time.sleep(0.3)
+                    # 最終位置表示
+                    lcd.display(scroll_str[:8], line=0)
+                    lcd.display(nxt[:8].ljust(8), line=1)
                 time.sleep(0.2)
 
             if button.is_pressed():
