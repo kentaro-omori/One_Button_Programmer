@@ -12,6 +12,14 @@ import smbus
 import sys
 import shutil
 
+# イベント検出用フラグ
+file_select_event = False
+
+def on_file_select(channel):
+    """ボタン2割り込みコールバック"""
+    global file_select_event
+    file_select_event = True
+
 class LED:
     """GPIO ピン制御用の LED クラス"""
 
@@ -216,6 +224,12 @@ def main():
     button2 = Button(21, bounce_time=0.01, pull_up=True)
     lcd = LCD(address=0x3e, backlight_pin=26)
 
+    # 割り込み設定: SW2押下時にフラグ設定
+    GPIO.add_event_detect(button2.pin,
+                         GPIO.FALLING if button2.pull_up else GPIO.RISING,
+                         callback=on_file_select,
+                         bouncetime=int(button2.bounce_time*1000))
+
     # 起動時状態: 緑 LED 点灯
     green_led.on()
     yellow_led.off()
@@ -238,34 +252,31 @@ def main():
 
     try:
         while True:
-            # hexファイル選択: スイッチ2押下で次を表示
-            if button2.is_pressed():
+            # hexファイル選択: SW2割り込みフラグで次を表示
+            if file_select_event:
+                file_select_event = False
                 hex_files = sorted(glob.glob(os.path.join(hex_dir, "*.hex")))
                 if hex_files:
                     names = [os.path.basename(f) for f in hex_files]
-                    # 次のファイルへ選択
+                    # 次のファイル選択
                     selected_idx = (selected_idx + 1) % len(names)
                     cur = names[selected_idx]
                     nxt = names[(selected_idx + 1) % len(names)]
-                    # 初期表示（＠なし）
+                    # 表示更新
                     lcd.display(cur[:8].ljust(8), line=0)
                     lcd.display(nxt[:8].ljust(8), line=1)
-                    # SW2リリース待機
-                    while button2.is_pressed():
-                        time.sleep(0.05)
-                    # 長いファイル名はスクロール表示
+                    # 長いファイル名はスクロール (イベント検出で中断)
                     if len(cur) > 8:
                         scroll_str = cur + " " * 8
                         scroll_len = len(scroll_str)
-                        idx = 0
-                        while not button2.is_pressed():
-                            lcd.display(scroll_str[idx:idx+8], line=0)
+                        for i in range(scroll_len):
+                            lcd.display(scroll_str[i:i+8], line=0)
                             lcd.display(nxt[:8].ljust(8), line=1)
-                            idx = (idx + 1) % scroll_len
-                            time.sleep(0.3)
-                    # SW2リリース待機
-                    while button2.is_pressed():
-                        time.sleep(0.05)
+                            time.sleep(0.05)
+                            if file_select_event:
+                                # 次選択へ移行
+                                file_select_event = False
+                                break
             time.sleep(0.2)
 
             if button.is_pressed():
