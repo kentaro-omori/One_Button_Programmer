@@ -273,7 +273,7 @@ def main():
                         for i in range(scroll_len):
                             lcd.display(scroll_str[i:i+8], line=0)
                             lcd.display(nxt[:8].ljust(8), line=1)
-                            time.sleep(0.05)
+                            time.sleep(0.3)
                             if file_select_event:
                                 # 次選択へ移行
                                 file_select_event = False
