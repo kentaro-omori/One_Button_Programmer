@@ -124,7 +124,7 @@ class LCD:
         self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x70 | 0x0F])
         time.sleep(0.005)
         # コントラスト設定上位2bit + ブースタON
-        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x5C | 0x04])
+        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x56| 0x04])
         time.sleep(0.005)
         # フォロワー制御
         self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x6C])
@@ -243,38 +243,29 @@ def main():
                 hex_files = sorted(glob.glob(os.path.join(hex_dir, "*.hex")))
                 if hex_files:
                     names = [os.path.basename(f) for f in hex_files]
-                    # ファイル選択とスクロールループ
-                    while True:
-                        # 次のファイル選択
-                        selected_idx = (selected_idx + 1) % len(names)
-                        cur = names[selected_idx]
-                        nxt = names[(selected_idx + 1) % len(names)]
-                        # 初期表示
-                        lcd.display(("@"+cur)[:8].ljust(8), line=0)
-                        lcd.display(nxt[:8].ljust(8), line=1)
-                        # release待機
-                        while button2.is_pressed():
-                            time.sleep(0.05)
-                        # scroll処理: SW2押下で次ファイル
-                        interrupted = False
-                        if len(cur) > 8:
-                            scroll_str = "@" + cur + " " * 8
-                            scroll_len = len(scroll_str) - 7
-                            for i in range(1, scroll_len):
-                                lcd.display(scroll_str[i:i+8], line=0)
-                                lcd.display(nxt[:8].ljust(8), line=1)
-                                for _ in range(6):
-                                    time.sleep(0.05)
-                                    if button2.is_pressed():
-                                        interrupted = True
-                                        break
-                                if interrupted:
-                                    break
-                            if interrupted:
-                                # 次ファイル
-                                continue
-                        # 選択確定
-                        break
+                    # 次のファイルへ選択
+                    selected_idx = (selected_idx + 1) % len(names)
+                    cur = names[selected_idx]
+                    nxt = names[(selected_idx + 1) % len(names)]
+                    # 初期表示（＠なし）
+                    lcd.display(cur[:8].ljust(8), line=0)
+                    lcd.display(nxt[:8].ljust(8), line=1)
+                    # SW2リリース待機
+                    while button2.is_pressed():
+                        time.sleep(0.05)
+                    # 長いファイル名はスクロール表示
+                    if len(cur) > 8:
+                        scroll_str = cur + " " * 8
+                        scroll_len = len(scroll_str)
+                        idx = 0
+                        while not button2.is_pressed():
+                            lcd.display(scroll_str[idx:idx+8], line=0)
+                            lcd.display(nxt[:8].ljust(8), line=1)
+                            idx = (idx + 1) % scroll_len
+                            time.sleep(0.3)
+                    # SW2リリース待機
+                    while button2.is_pressed():
+                        time.sleep(0.05)
             time.sleep(0.2)
 
             if button.is_pressed():
