@@ -243,37 +243,38 @@ def main():
                 hex_files = sorted(glob.glob(os.path.join(hex_dir, "*.hex")))
                 if hex_files:
                     names = [os.path.basename(f) for f in hex_files]
-                    selected_idx = (selected_idx + 1) % len(names)
-                    cur = names[selected_idx]
-                    nxt = names[(selected_idx+1) % len(names)]
-                    # SW2押下後のリリース待機
-                    while button2.is_pressed():
-                        time.sleep(0.05)
-                    # ファイル名スクロール表示 (1行目のみ), SW2押下で中断
-                    scroll_str = "@" + cur + " " * 8
-                    if len(cur) <= 8:
-                        lcd.display(scroll_str[:8], line=0)
+                    # ファイル選択とスクロールループ
+                    while True:
+                        # 次のファイル選択
+                        selected_idx = (selected_idx + 1) % len(names)
+                        cur = names[selected_idx]
+                        nxt = names[(selected_idx + 1) % len(names)]
+                        # 初期表示
+                        lcd.display(("@"+cur)[:8].ljust(8), line=0)
                         lcd.display(nxt[:8].ljust(8), line=1)
-                    else:
-                        stop_scroll = False
-                        # SW2が押されるまで繰り返しスクロール
-                        while not stop_scroll:
-                            for i in range(len(scroll_str) - 7):
+                        # release待機
+                        while button2.is_pressed():
+                            time.sleep(0.05)
+                        # scroll処理: SW2押下で次ファイル
+                        interrupted = False
+                        if len(cur) > 8:
+                            scroll_str = "@" + cur + " " * 8
+                            scroll_len = len(scroll_str) - 7
+                            for i in range(1, scroll_len):
                                 lcd.display(scroll_str[i:i+8], line=0)
                                 lcd.display(nxt[:8].ljust(8), line=1)
-                                # 0.3秒間を0.01秒刻みでSW2チェック
-                                start = time.time()
-                                while time.time() - start < 0.3:
+                                for _ in range(6):
+                                    time.sleep(0.05)
                                     if button2.is_pressed():
-                                        stop_scroll = True
+                                        interrupted = True
                                         break
-                                    time.sleep(0.01)
-                                if stop_scroll:
+                                if interrupted:
                                     break
-                        # 最終表示
-                        lcd.display(scroll_str[:8], line=0)
-                        lcd.display(nxt[:8].ljust(8), line=1)
-
+                            if interrupted:
+                                # 次ファイル
+                                continue
+                        # 選択確定
+                        break
             time.sleep(0.2)
 
             if button.is_pressed():
