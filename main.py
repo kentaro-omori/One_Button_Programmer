@@ -124,7 +124,7 @@ class LCD:
         self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x70 | 0x0F])
         time.sleep(0.005)
         # コントラスト設定上位2bit + ブースタON
-        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x56| 0x04])
+        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x5C | 0x04])
         time.sleep(0.005)
         # フォロワー制御
         self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x6C])
