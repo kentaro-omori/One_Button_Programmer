@@ -212,6 +212,7 @@ class Programmer:
 
 
 def main():
+    global file_select_event
     # GPIO 初期化
     GPIO.setmode(GPIO.BCM)
 
