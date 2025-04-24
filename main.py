@@ -224,6 +224,7 @@ def main():
     programmer = Programmer()
     button2 = Button(21, bounce_time=0.01, pull_up=True)
     lcd = LCD(address=0x3e, backlight_pin=26)
+    red_led = LED(17)
 
     # 割り込み設定: SW2押下時にフラグ設定
     GPIO.add_event_detect(button2.pin,
@@ -234,6 +235,7 @@ def main():
     # 起動時状態: 緑 LED 点灯
     green_led.on()
     yellow_led.off()
+    red_led.off()
 
     # 初期hex選択
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -284,19 +286,35 @@ def main():
                 # 書込み開始
                 green_led.off()
                 yellow_led.on()
+                lcd.display("Writing", line=1)
 
                 # 選択中のhexファイルを書込
                 if not hex_files:
-                    print("No HEX files to program")
+                    lcd.display("No HEX", line=1)
                 else:
                     target = hex_files[selected_idx]
-                    programmer.write_hex(target)
-
+                    try:
+                        programmer.write_hex(target)
+                        buzzer.buzz(1.0)
+                        lcd.display("Finish!!", line=1)
+                        red_led.off()
+                    except Exception:
+                        lcd.display("Error!!", line=1)
+                        red_led.on()
+                        # エラー時はスイッチ押下まで待機
+                        while True:
+                            if button.is_pressed() or file_select_event:
+                                red_led.off()
+                                if file_select_event:
+                                    file_select_event = False
+                                while button.is_pressed():
+                                    time.sleep(0.05)
+                                break
+                            time.sleep(0.1)
                 # 書込み後処理
                 yellow_led.off()
-                buzzer.buzz(1.0)
                 green_led.on()
-
+                time.sleep(1.0)
             time.sleep(0.1)
     except KeyboardInterrupt:
         pass
