@@ -304,6 +304,10 @@ def main():
                         lcd.display("Finish!!", line=1)
                         red_led.off()
                         green_led.on()
+                        time.sleep(1.0)
+                        # Finish後に元のファイル名表示に戻す
+                        lcd.display(cur[:8].ljust(8), line=0)
+                        lcd.display(nxt[:8].ljust(8), line=1)
                     else:
                         lcd.display("Error!!", line=1)
                         red_led.on()
