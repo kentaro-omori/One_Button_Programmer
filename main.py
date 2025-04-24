@@ -293,12 +293,18 @@ def main():
                     lcd.display("No HEX", line=1)
                 else:
                     target = hex_files[selected_idx]
+                    # 書込み実行と結果判定
+                    success = False
                     try:
-                        programmer.write_hex(target)
+                        success = programmer.write_hex(target)
+                    except Exception as e:
+                        print("プログラミング例外:", e)
+                    if success:
                         buzzer.buzz(1.0)
                         lcd.display("Finish!!", line=1)
                         red_led.off()
-                    except Exception:
+                        green_led.on()
+                    else:
                         lcd.display("Error!!", line=1)
                         red_led.on()
                         # エラー時はスイッチ押下まで待機
@@ -313,7 +319,6 @@ def main():
                             time.sleep(0.1)
                 # 書込み後処理
                 yellow_led.off()
-                green_led.on()
                 time.sleep(1.0)
             time.sleep(0.1)
     except KeyboardInterrupt:
