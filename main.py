@@ -318,14 +318,14 @@ def main():
                                 if file_select_event or write_button_pressed:
                                     break
                             
-                            # スクロール終了後、最小限の待機で次のスクロールを開始
+                            # スクロール間の待機時間を最小限にし、ほぼ連続的にスクロールする
+                            # 待機時間なしで次のスクロールを開始
                             if not file_select_event and not write_button_pressed:
-                                # スクロール終了後、0.2秒間だけ通常表示
-                                lcd.display(cur[:8].ljust(8), line=0)
-                                for _ in range(4):  # 0.2秒を0.05秒×4回に分割
-                                    time.sleep(0.05)
-                                    if file_select_event or write_button_pressed:
-                                        break
+                                # スクロール間の待機は必要最小限にする
+                                # 割り込みチェックのために最小限の待機を入れる
+                                time.sleep(0.01)
+                                if file_select_event or write_button_pressed:
+                                    break
                         
                         # スクロール中にファイル選択ボタンが押された場合、フラグを再設定して次のループで確実にファイル切り替えが行われるようにする
                         if file_select_event:
