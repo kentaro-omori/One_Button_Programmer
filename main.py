@@ -20,6 +20,14 @@ def on_file_select(channel):
     global file_select_event
     file_select_event = True
 
+# SW1(書き込みボタン)の割り込みフラグ
+write_button_pressed = False
+
+def on_write_button(channel):
+    """ボタン1割り込みコールバック"""
+    global write_button_pressed
+    write_button_pressed = True
+
 class LED:
     """GPIO ピン制御用の LED クラス"""
 
@@ -213,6 +221,7 @@ class Programmer:
 
 def main():
     global file_select_event
+    global write_button_pressed
     # GPIO 初期化
     GPIO.setmode(GPIO.BCM)
 
@@ -231,6 +240,12 @@ def main():
                          GPIO.FALLING if button2.pull_up else GPIO.RISING,
                          callback=on_file_select,
                          bouncetime=int(button2.bounce_time*1000))
+
+    # 割り込み設定: SW1(書き込みボタン)押下時にフラグ設定
+    GPIO.add_event_detect(button.pin,
+                         GPIO.RISING if not button.pull_up else GPIO.FALLING,
+                         callback=on_write_button,
+                         bouncetime=int(button.bounce_time*1000))
 
     # 起動時状態: 緑 LED 点灯
     green_led.on()
@@ -275,14 +290,22 @@ def main():
                         for i in range(scroll_len):
                             lcd.display(scroll_str[i:i+8], line=0)
                             lcd.display(nxt[:8].ljust(8), line=1)
-                            time.sleep(0.3)
+                            # 短い間隔で割り込みチェック
+                            for _ in range(6):  # 0.3秒を0.05秒×6回に分割
+                                time.sleep(0.05)
+                                if file_select_event or write_button_pressed:
+                                    break
                             if file_select_event:
                                 # 次選択へ移行
                                 file_select_event = False
                                 break
-            time.sleep(0.2)
+                            if write_button_pressed:
+                                break
+            # 短い間隔で割り込みチェック
+            time.sleep(0.05)
 
-            if button.is_pressed():
+            if write_button_pressed:
+                write_button_pressed = False
                 # 書込み開始
                 green_led.off()
                 yellow_led.on()
@@ -304,7 +327,12 @@ def main():
                         lcd.display("Finish!!", line=1)
                         red_led.off()
                         green_led.on()
-                        time.sleep(1.0)
+                        # 短い間隔で割り込みチェック
+                        for _ in range(20):  # 1秒を0.05秒×20回に分割
+                            time.sleep(0.05)
+                            if file_select_event:
+                                file_select_event = False
+                                break
                         # Finish後に元のファイル名表示に戻す
                         lcd.display(cur[:8].ljust(8), line=0)
                         lcd.display(nxt[:8].ljust(8), line=1)
@@ -313,18 +341,24 @@ def main():
                         red_led.on()
                         # エラー時はスイッチ押下まで待機
                         while True:
-                            if button.is_pressed() or file_select_event:
+                            if write_button_pressed or file_select_event:
                                 red_led.off()
                                 if file_select_event:
                                     file_select_event = False
-                                while button.is_pressed():
+                                if write_button_pressed:
+                                    write_button_pressed = False
+                                # ボタンが離されるのを待つ（短い間隔でチェック）
+                                while GPIO.input(button.pin) == button.active_level:
                                     time.sleep(0.05)
                                 break
-                            time.sleep(0.1)
+                            time.sleep(0.05)
                 # 書込み後処理
                 yellow_led.off()
-                time.sleep(1.0)
-            time.sleep(0.1)
+                # 短い間隔で割り込みチェック
+                for _ in range(20):  # 1秒を0.05秒×20回に分割
+                    time.sleep(0.05)
+                    if file_select_event:
+                        break
     except KeyboardInterrupt:
         pass
     finally:
