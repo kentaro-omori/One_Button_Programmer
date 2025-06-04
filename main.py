@@ -146,14 +146,14 @@ class LCD:
         # 内部発振周波数設定
         self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x14])
         time.sleep(0.005)
-        # コントラスト設定下位4bit - 最大値に設定
-        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x70 | 0x0F])
+        # コントラスト設定下位4bit - 適切な値に設定 (0x04)
+        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x70 | 0x04])
         time.sleep(0.005)
-        # コントラスト設定上位2bit + ブースタON - 最大値に設定
-        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x5C | 0x03])
+        # コントラスト設定上位2bit + ブースタON - 中間値に設定 (0x01)
+        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x5C | 0x01])
         time.sleep(0.005)
-        # フォロワー制御 - 電圧値を上げる
-        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x6F])
+        # フォロワー制御 - 適切な電圧値に設定
+        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x6C])
         time.sleep(0.2)
         # 標準命令セットに戻す
         self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x38])
