@@ -26,7 +26,10 @@ write_button_pressed = False
 def on_write_button(channel):
     """ボタン1割り込みコールバック"""
     global write_button_pressed
-    write_button_pressed = True
+    # 既に処理中の場合は無視（二重実行防止）
+    if not write_button_pressed:
+        write_button_pressed = True
+        print("SW1割り込み検出")
 
 class LED:
     """GPIO ピン制御用の LED クラス"""
@@ -75,7 +78,7 @@ class Buzzer:
 
 
 class Button:
-    """GPIO ピン入力用のボタン クラス（簡易デバウンス付き）"""
+    """GPIO ピン制御用のボタン クラス"""
 
     def __init__(self, pin, bounce_time=0.01, pull_up=False):
         """
@@ -91,14 +94,21 @@ class Button:
         GPIO.setup(self.pin, GPIO.IN, pull_up_down=pud)
         self.active_level = GPIO.LOW if pull_up else GPIO.HIGH
 
+    def is_active(self):
+        """
+        Returns:
+            bool: ボタンがアクティブ状態（押されている）かどうか
+        """
+        return GPIO.input(self.pin) == self.active_level
+        
     def is_pressed(self):
         """
         Returns:
             bool: 押下検知時に True を返す
         """
-        if GPIO.input(self.pin) == self.active_level:
+        if self.is_active():
             time.sleep(self.bounce_time)
-            if GPIO.input(self.pin) == self.active_level:
+            if self.is_active():
                 return True
         return False
 
@@ -242,10 +252,11 @@ def main():
                          bouncetime=int(button2.bounce_time*1000))
 
     # 割り込み設定: SW1(書き込みボタン)押下時にフラグ設定
+    # bouncetimeを長めに設定して二重検出を防止
     GPIO.add_event_detect(button.pin,
                          GPIO.RISING if not button.pull_up else GPIO.FALLING,
                          callback=on_write_button,
-                         bouncetime=int(button.bounce_time*1000))
+                         bouncetime=300)  # 300ms
 
     # 起動時状態: 緑 LED 点灯
     green_led.on()
@@ -348,7 +359,7 @@ def main():
                                 if write_button_pressed:
                                     write_button_pressed = False
                                 # ボタンが離されるのを待つ（短い間隔でチェック）
-                                while GPIO.input(button.pin) == button.active_level:
+                                while button.is_active():
                                     time.sleep(0.05)
                                 break
                             time.sleep(0.05)
