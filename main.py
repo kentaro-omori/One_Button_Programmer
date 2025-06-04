@@ -18,7 +18,10 @@ file_select_event = False
 def on_file_select(channel):
     """ボタン2割り込みコールバック"""
     global file_select_event
-    file_select_event = True
+    # 既に処理中の場合は無視（二重実行防止）
+    if not file_select_event:
+        file_select_event = True
+        print("SW2割り込み検出")
 
 # SW1(書き込みボタン)の割り込みフラグ
 write_button_pressed = False
@@ -241,15 +244,17 @@ def main():
     buzzer = Buzzer(23)
     button = Button(24)
     programmer = Programmer()
-    button2 = Button(21, bounce_time=0.01, pull_up=True)
+    # SW2ボタンのチャタリング対策を強化するため、デバウンス時間を延長
+    button2 = Button(21, bounce_time=0.3, pull_up=True)  # 0.01秒→0.3秒に変更
     lcd = LCD(address=0x3e, backlight_pin=26)
     red_led = LED(17)
 
     # 割り込み設定: SW2押下時にフラグ設定
+    # チャタリング対策としてbouncetimeを300msに設定
     GPIO.add_event_detect(button2.pin,
                          GPIO.FALLING if button2.pull_up else GPIO.RISING,
                          callback=on_file_select,
-                         bouncetime=int(button2.bounce_time*1000))
+                         bouncetime=300)  # 直接300msを指定
 
     # 割り込み設定: SW1(書き込みボタン)押下時にフラグ設定
     # bouncetimeを長めに設定して二重検出を防止
