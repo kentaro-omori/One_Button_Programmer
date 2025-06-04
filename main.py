@@ -295,6 +295,7 @@ def main():
                     lcd.display(cur[:8].ljust(8), line=0)
                     lcd.display(nxt[:8].ljust(8), line=1)
                     # 長いファイル名はスクロール (イベント検出で中断)
+                    scroll_interrupted = False
                     if len(cur) > 8:
                         scroll_str = cur + " " * 8
                         scroll_len = len(scroll_str)
@@ -307,11 +308,16 @@ def main():
                                 if file_select_event or write_button_pressed:
                                     break
                             if file_select_event:
-                                # 次選択へ移行
-                                file_select_event = False
+                                # スクロール中にファイル選択ボタンが押されたことを記録
+                                scroll_interrupted = True
                                 break
                             if write_button_pressed:
                                 break
+                        
+                        # スクロール中にファイル選択ボタンが押された場合、フラグを再設定して次のループで確実にファイル切り替えが行われるようにする
+                        if scroll_interrupted:
+                            file_select_event = True
+                            continue
             # 短い間隔で割り込みチェック
             time.sleep(0.05)
 
