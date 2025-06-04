@@ -300,28 +300,35 @@ def main():
                     lcd.display(cur[:8].ljust(8), line=0)
                     lcd.display(nxt[:8].ljust(8), line=1)
                     # 長いファイル名はスクロール (イベント検出で中断)
+                    # ボタン操作がない限り繰り返しスクロールする
                     scroll_interrupted = False
                     if len(cur) > 8:
-                        scroll_str = cur + " " * 8
-                        scroll_len = len(scroll_str)
-                        for i in range(scroll_len):
-                            lcd.display(scroll_str[i:i+8], line=0)
-                            lcd.display(nxt[:8].ljust(8), line=1)
-                            # 短い間隔で割り込みチェック
-                            for _ in range(6):  # 0.3秒を0.05秒×6回に分割
-                                time.sleep(0.05)
+                        # 繰り返しスクロール用の無限ループ
+                        while not file_select_event and not write_button_pressed:
+                            scroll_str = cur + " " * 8
+                            scroll_len = len(scroll_str)
+                            for i in range(scroll_len):
+                                lcd.display(scroll_str[i:i+8], line=0)
+                                lcd.display(nxt[:8].ljust(8), line=1)
+                                # 短い間隔で割り込みチェック
+                                for _ in range(6):  # 0.3秒を0.05秒×6回に分割
+                                    time.sleep(0.05)
+                                    if file_select_event or write_button_pressed:
+                                        break
                                 if file_select_event or write_button_pressed:
                                     break
-                            if file_select_event:
-                                # スクロール中にファイル選択ボタンが押されたことを記録
-                                scroll_interrupted = True
-                                break
-                            if write_button_pressed:
-                                break
+                            
+                            # スクロール終了後、少し待機してから次のスクロールを開始
+                            if not file_select_event and not write_button_pressed:
+                                # スクロール終了後、1秒間通常表示
+                                lcd.display(cur[:8].ljust(8), line=0)
+                                for _ in range(20):  # 1秒を0.05秒×20回に分割
+                                    time.sleep(0.05)
+                                    if file_select_event or write_button_pressed:
+                                        break
                         
                         # スクロール中にファイル選択ボタンが押された場合、フラグを再設定して次のループで確実にファイル切り替えが行われるようにする
-                        if scroll_interrupted:
-                            file_select_event = True
+                        if file_select_event:
                             continue
             # 短い間隔で割り込みチェック
             time.sleep(0.05)
