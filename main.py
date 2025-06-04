@@ -318,11 +318,11 @@ def main():
                                 if file_select_event or write_button_pressed:
                                     break
                             
-                            # スクロール終了後、少し待機してから次のスクロールを開始
+                            # スクロール終了後、最小限の待機で次のスクロールを開始
                             if not file_select_event and not write_button_pressed:
-                                # スクロール終了後、1秒間通常表示
+                                # スクロール終了後、0.2秒間だけ通常表示
                                 lcd.display(cur[:8].ljust(8), line=0)
-                                for _ in range(20):  # 1秒を0.05秒×20回に分割
+                                for _ in range(4):  # 0.2秒を0.05秒×4回に分割
                                     time.sleep(0.05)
                                     if file_select_event or write_button_pressed:
                                         break
