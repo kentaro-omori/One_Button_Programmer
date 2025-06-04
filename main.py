@@ -119,9 +119,11 @@ class LCD:
     LCD_DATA_REGISTER = 0x40
     CMD_FUNCTIONSET = 0x38
     CMD_BIAS_OSC = 0x14
-    CMD_CONTRAST_SET = 0x70
+    # コントラスト設定を高めに調整 (0x70 -> 0x78)
+    CMD_CONTRAST_SET = 0x78  # コントラスト値を上げる
     CMD_POWER_ICON_CTRL = 0x5C
-    CMD_FOLLOWER_CTRL = 0x6C
+    # フォロワー制御も調整 (0x6C -> 0x6E)
+    CMD_FOLLOWER_CTRL = 0x6E
     CMD_DISPLAY_ON = 0x0C
     CMD_CLEAR = 0x01
     CMD_ENTRY_MODE = 0x06
@@ -273,8 +275,8 @@ def main():
         names = [os.path.basename(f) for f in hex_files]
         cur = names[selected_idx]
         nxt = names[(selected_idx+1) % len(names)]
-        # 二行表示: 1行目に選択ファイル (@付き), 2行目に次のファイル
-        lcd.display(("@"+cur)[:8].ljust(8), line=0)
+        # 二行表示: 1行目に選択ファイル, 2行目に次のファイル
+        lcd.display(cur[:8].ljust(8), line=0)
         lcd.display(nxt[:8].ljust(8), line=1)
     else:
         lcd.display("No HEX files", line=0)
