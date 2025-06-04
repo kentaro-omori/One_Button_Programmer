@@ -119,11 +119,9 @@ class LCD:
     LCD_DATA_REGISTER = 0x40
     CMD_FUNCTIONSET = 0x38
     CMD_BIAS_OSC = 0x14
-    # コントラスト設定を高めに調整 (0x70 -> 0x78)
-    CMD_CONTRAST_SET = 0x78  # コントラスト値を上げる
+    CMD_CONTRAST_SET = 0x70
     CMD_POWER_ICON_CTRL = 0x5C
-    # フォロワー制御も調整 (0x6C -> 0x6E)
-    CMD_FOLLOWER_CTRL = 0x6E
+    CMD_FOLLOWER_CTRL = 0x6C
     CMD_DISPLAY_ON = 0x0C
     CMD_CLEAR = 0x01
     CMD_ENTRY_MODE = 0x06
@@ -148,14 +146,14 @@ class LCD:
         # 内部発振周波数設定
         self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x14])
         time.sleep(0.005)
-        # コントラスト設定下位4bit
+        # コントラスト設定下位4bit - 最大値に設定
         self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x70 | 0x0F])
         time.sleep(0.005)
-        # コントラスト設定上位2bit + ブースタON
-        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x5C | 0x04])
+        # コントラスト設定上位2bit + ブースタON - 最大値に設定
+        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x5C | 0x03])
         time.sleep(0.005)
-        # フォロワー制御
-        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x6C])
+        # フォロワー制御 - 電圧値を上げる
+        self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x6F])
         time.sleep(0.2)
         # 標準命令セットに戻す
         self.bus.write_i2c_block_data(self.address, self.LCD_CONTROL_REGISTER, [0x38])
