@@ -87,6 +87,47 @@ class Buzzer:
         time.sleep(duration_sec)
         pwm.stop()
         GPIO.output(self.pin, GPIO.LOW)
+    
+    def play_tone(self, frequency, duration_sec):
+        """
+        指定した周波数で指定時間ブザーを鳴らす
+        Args:
+            frequency (float): 周波数（Hz）
+            duration_sec (float): 鳴動時間（秒）
+        """
+        pwm = GPIO.PWM(self.pin, frequency)
+        pwm.start(50)  # デューティ比 50%
+        time.sleep(duration_sec)
+        pwm.stop()
+        GPIO.output(self.pin, GPIO.LOW)
+    
+    def play_success(self):
+        """成功時のメロディー: ドレミファー"""
+        # ド(C): 261.626Hz
+        # レ(D): 293.665Hz
+        # ミ(E): 329.628Hz
+        # ファ(F): 349.228Hz
+        self.play_tone(261.626, 0.2)
+        time.sleep(0.05)
+        self.play_tone(293.665, 0.2)
+        time.sleep(0.05)
+        self.play_tone(329.628, 0.2)
+        time.sleep(0.05)
+        self.play_tone(349.228, 0.4)
+    
+    def play_error(self):
+        """失敗時のメロディー: ファミレドー"""
+        # ファ(F): 349.228Hz
+        # ミ(E): 329.628Hz
+        # レ(D): 293.665Hz
+        # ド(C): 261.626Hz
+        self.play_tone(349.228, 0.2)
+        time.sleep(0.05)
+        self.play_tone(329.628, 0.2)
+        time.sleep(0.05)
+        self.play_tone(293.665, 0.2)
+        time.sleep(0.05)
+        self.play_tone(261.626, 0.4)
 
 
 class Button:
@@ -419,7 +460,7 @@ def main():
                     except Exception as e:
                         print("プログラミング例外:", e)
                     if success:
-                        buzzer.buzz(1.0)
+                        buzzer.play_success()
                         lcd.display("Finish!!", line=1)
                         red_led.off()
                         green_led.on()
@@ -433,6 +474,7 @@ def main():
                         lcd.display(cur[:8].ljust(8), line=0)
                         lcd.display(nxt[:8].ljust(8), line=1)
                     else:
+                        buzzer.play_error()
                         lcd.display("Error!!", line=1)
                         red_led.on()
                         # エラー時はスイッチ押下まで待機
