@@ -254,7 +254,7 @@ def main():
     green_led = LED(17)
     blue_led = LED(27)
     buzzer = Buzzer(18)
-    button = Button(23)
+    button = Button(23, bounce_time=0.3, pull_up=True)
     programmer = Programmer()
     # SW2ボタンのチャタリング対策を強化するため、デバウンス時間を延長
     button2 = Button(20, bounce_time=0.3, pull_up=True)  # 0.01秒→0.3秒に変更
