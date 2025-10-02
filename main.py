@@ -248,7 +248,7 @@ def main():
     programmer = Programmer()
     # SW2ボタンのチャタリング対策を強化するため、デバウンス時間を延長
     button2 = Button(20, bounce_time=0.3, pull_up=True)  # 0.01秒→0.3秒に変更
-    lcd = LCD(address=0x3e, backlight_pin=26)
+    lcd = LCD(address=0x3e, backlight_pin=6)
 
     # 割り込み設定: SW2押下時にフラグ設定
     # チャタリング対策としてbouncetimeを300msに設定
