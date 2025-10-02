@@ -11,43 +11,17 @@ import RPi.GPIO as GPIO
 import smbus
 import sys
 import shutil
-import signal
 
 # イベント検出用フラグ
 file_select_event = False
 
-# SW2ボタンの長押し検出用変数
-sw2_press_time = None
-sw2_long_press_threshold = 3.0  # 長押しと判定する秒数
-sw2_long_press_check = False  # 長押しチェック中かどうか
-
 def on_file_select(channel):
     """ボタン2割り込みコールバック"""
-    global file_select_event, sw2_press_time, sw2_long_press_check
-    
-    # ボタンの状態を確認
-    if GPIO.input(channel) == (0 if button2.pull_up else 1):  # 押された状態
-        # ボタン押下時刻を記録
-        sw2_press_time = time.time()
-        sw2_long_press_check = True
-        print("SW2押下検出 - 長押しチェック開始")
-    else:  # 解放された状態
-        if sw2_press_time is not None:
-            # 押していた時間を計算
-            press_duration = time.time() - sw2_press_time
-            sw2_press_time = None
-            sw2_long_press_check = False
-            
-            # 長押しだった場合はシャットダウン処理
-            if press_duration >= sw2_long_press_threshold:
-                print(f"SW2長押し検出: {press_duration:.1f}秒")
-                shutdown_system()
-            else:
-                # 短押しの場合は通常のファイル選択処理
-                # 既に処理中の場合は無視（二重実行防止）
-                if not file_select_event:
-                    file_select_event = True
-                    print(f"SW2短押し検出: {press_duration:.1f}秒")
+    global file_select_event
+    # 既に処理中の場合は無視（二重実行防止）
+    if not file_select_event:
+        file_select_event = True
+        print("SW2割り込み検出")
 
 # SW1(書き込みボタン)の割り込みフラグ
 write_button_pressed = False
@@ -258,50 +232,6 @@ class Programmer:
         return True
 
 
-def shutdown_system():
-    """システムを安全にシャットダウンする"""
-    try:
-        # 全てのLEDを消灯する前に警告表示
-        # 赤LEDを点滅させて警告
-        for _ in range(5):
-            GPIO.output(17, GPIO.HIGH)  # red LED on
-            time.sleep(0.2)
-            GPIO.output(17, GPIO.LOW)   # red LED off
-            time.sleep(0.2)
-            
-        # LCDにシャットダウンメッセージを表示
-        lcd = LCD(address=0x3e, backlight_pin=26)
-        lcd.display("Shutdown", line=0)
-        lcd.display("in progress", line=1)
-        
-        # 全てのLEDを消灯
-        GPIO.output(22, GPIO.LOW)  # green LED
-        GPIO.output(27, GPIO.LOW)  # yellow LED
-        GPIO.output(17, GPIO.LOW)  # red LED
-        
-        print("\n*** システムをシャットダウンします ***")
-        print("*** SW2ボタンの長押しによるシャットダウン ***")
-        time.sleep(1)  # メッセージを表示する時間を確保
-        
-        # システムをシャットダウン
-        subprocess.call(['sudo', 'shutdown', '-h', 'now'])
-    except Exception as e:
-        print(f"\n*** シャットダウン中にエラーが発生しました: {e} ***")
-
-# 長押しチェック用の関数
-def check_long_press():
-    """長押し中かどうかをチェックし、長押しを検出したらシャットダウンする"""
-    global sw2_press_time, sw2_long_press_check
-    
-    # 長押しチェック中で、時間が経過していればシャットダウン
-    if sw2_long_press_check and sw2_press_time is not None:
-        press_duration = time.time() - sw2_press_time
-        if press_duration >= sw2_long_press_threshold:
-            print(f"SW2長押し検出: {press_duration:.1f}秒")
-            sw2_press_time = None
-            sw2_long_press_check = False
-            shutdown_system()
-
 def main():
     global file_select_event
     global write_button_pressed
@@ -309,20 +239,21 @@ def main():
     GPIO.setmode(GPIO.BCM)
 
     # ハードウェアオブジェクト生成
-    green_led = LED(22)
-    yellow_led = LED(27)
-    buzzer = Buzzer(23)
-    button = Button(24)
+    # RGB LED対応: 赤=GPIO22, 緑=GPIO17, 青=GPIO27
+    red_led = LED(22)
+    green_led = LED(17)
+    blue_led = LED(27)
+    buzzer = Buzzer(18)
+    button = Button(23)
     programmer = Programmer()
     # SW2ボタンのチャタリング対策を強化するため、デバウンス時間を延長
-    button2 = Button(21, bounce_time=0.3, pull_up=True)  # 0.01秒→0.3秒に変更
+    button2 = Button(20, bounce_time=0.3, pull_up=True)  # 0.01秒→0.3秒に変更
     lcd = LCD(address=0x3e, backlight_pin=26)
-    red_led = LED(17)
 
-    # 割り込み設定: SW2の押下と解放の両方を検出する
+    # 割り込み設定: SW2押下時にフラグ設定
     # チャタリング対策としてbouncetimeを300msに設定
     GPIO.add_event_detect(button2.pin,
-                         GPIO.BOTH,  # 両エッジを検出
+                         GPIO.FALLING if button2.pull_up else GPIO.RISING,
                          callback=on_file_select,
                          bouncetime=300)  # 直接300msを指定
 
@@ -335,8 +266,8 @@ def main():
 
     # 起動時状態: 緑 LED 点灯
     green_led.on()
-    yellow_led.off()
     red_led.off()
+    blue_led.off()
 
     # 初期hex選択
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -356,9 +287,6 @@ def main():
 
     try:
         while True:
-            # SW2長押しチェック
-            check_long_press()
-            
             # hexファイル選択: SW2割り込みフラグで次を表示
             if file_select_event:
                 file_select_event = False
@@ -386,8 +314,6 @@ def main():
                                 # 短い間隔で割り込みチェック
                                 for _ in range(6):  # 0.3秒を0.05秒×6回に分割
                                     time.sleep(0.05)
-                                    # 長押しチェックも行う
-                                    check_long_press()
                                     if file_select_event or write_button_pressed:
                                         break
                                 if file_select_event or write_button_pressed:
@@ -412,7 +338,9 @@ def main():
                 write_button_pressed = False
                 # 書込み開始
                 green_led.off()
-                yellow_led.on()
+                # 黄色LED表示（赤と緑を同時点灯）
+                red_led.on()
+                green_led.on()
                 lcd.display("Writing", line=1)
 
                 # 選択中のhexファイルを書込
@@ -457,7 +385,9 @@ def main():
                                 break
                             time.sleep(0.05)
                 # 書込み後処理
-                yellow_led.off()
+                # 黄色LED消灯（赤と緑を消灯）
+                red_led.off()
+                green_led.off()
                 # 短い間隔で割り込みチェック
                 for _ in range(20):  # 1秒を0.05秒×20回に分割
                     time.sleep(0.05)
