@@ -3,14 +3,21 @@
 main.py: Raspberry Pi Zero 2 W で ATtiny1616 に UPDI 経由で書き込むプログラム
 """
 
+print("プログラム起動中...")
+
 import os
 import time
 import subprocess
 import glob
+
+print("基本ライブラリ読み込み完了")
+
 import RPi.GPIO as GPIO
 import smbus
 import sys
 import shutil
+
+print("全ライブラリ読み込み完了")
 
 # イベント検出用フラグ
 file_select_event = False
@@ -283,25 +290,38 @@ class Programmer:
 
 
 def main():
+    print("main関数開始")
     global file_select_event
     global file_select_prev_event
     global write_button_pressed
     # GPIO 初期化
+    print("GPIO初期化中...")
     GPIO.setmode(GPIO.BCM)
+    print("GPIO初期化完了")
 
     # ハードウェアオブジェクト生成
+    print("ハードウェアオブジェクト生成中...")
     # RGB LED対応: 赤=GPIO22, 緑=GPIO17, 青=GPIO27
     red_led = LED(22)
+    print("赤LED初期化完了")
     green_led = LED(17)
+    print("緑LED初期化完了")
     blue_led = LED(27)
+    print("青LED初期化完了")
     buzzer = Buzzer(18)
+    print("ブザー初期化完了")
     button = Button(23, bounce_time=0.3, pull_up=True)
+    print("ボタン1初期化完了")
     programmer = Programmer()
+    print("プログラマー初期化完了")
     # SW2ボタンのチャタリング対策を強化するため、デバウンス時間を延長
     button2 = Button(20, bounce_time=0.3, pull_up=True)  # 0.01秒→0.3秒に変更
+    print("ボタン2初期化完了")
     # SW3ボタン（前のファイルへ）
     button3 = Button(21, bounce_time=0.3, pull_up=True)
+    print("ボタン3初期化完了")
     lcd = LCD(address=0x3e, backlight_pin=6)
+    print("LCD初期化完了")
 
     # 割り込み設定: SW2押下時にフラグ設定（次のファイルへ）
     # チャタリング対策としてbouncetimeを300msに設定
@@ -322,13 +342,17 @@ def main():
                          GPIO.RISING if not button.pull_up else GPIO.FALLING,
                          callback=on_write_button,
                          bouncetime=300)  # 300ms
+    print("割り込み設定完了")
 
     # 起動時状態: 緑 LED 点灯
+    print("LED初期状態設定中...")
     green_led.on()
     red_led.off()
     blue_led.off()
+    print("LED初期状態設定完了")
 
     # 初期hex選択
+    print("hexファイル検索中...")
     base_dir = os.path.dirname(os.path.abspath(__file__))
     hex_dir = os.path.join(base_dir, "hex")
     os.makedirs(hex_dir, exist_ok=True)
@@ -341,9 +365,12 @@ def main():
         # 二行表示: 1行目に選択ファイル, 2行目に次のファイル
         lcd.display(cur[:8].ljust(8), line=0)
         lcd.display(nxt[:8].ljust(8), line=1)
+        print(f"hexファイル検出: {len(hex_files)}個")
     else:
         lcd.display("No HEX files", line=0)
+        print("hexファイルなし")
 
+    print("メインループ開始")
     try:
         while True:
             # hexファイル選択: SW2割り込みフラグで次を表示
