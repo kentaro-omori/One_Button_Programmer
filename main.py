@@ -102,32 +102,39 @@ class Buzzer:
         GPIO.output(self.pin, GPIO.LOW)
     
     def play_success(self):
-        """成功時のメロディー: ドレミファー"""
-        # ド(C): 261.626Hz
-        # レ(D): 293.665Hz
-        # ミ(E): 329.628Hz
-        # ファ(F): 349.228Hz
-        self.play_tone(261.626, 0.2)
+        """成功時のメロディー: 楽しい上昇音階（約2.5秒）"""
+        # ド(C4): 261.626Hz
+        # ミ(E4): 329.628Hz
+        # ソ(G4): 391.995Hz
+        # ド(C5): 523.251Hz
+        self.play_tone(261.626, 0.25)  # ド
         time.sleep(0.05)
-        self.play_tone(293.665, 0.2)
+        self.play_tone(329.628, 0.25)  # ミ
         time.sleep(0.05)
-        self.play_tone(329.628, 0.2)
+        self.play_tone(391.995, 0.25)  # ソ
         time.sleep(0.05)
-        self.play_tone(349.228, 0.4)
+        self.play_tone(523.251, 0.3)   # ド（高）
+        time.sleep(0.1)
+        self.play_tone(391.995, 0.2)   # ソ
+        time.sleep(0.05)
+        self.play_tone(523.251, 0.5)   # ド（高）長め
     
     def play_error(self):
-        """失敗時のメロディー: ファミレドー"""
-        # ファ(F): 349.228Hz
-        # ミ(E): 329.628Hz
-        # レ(D): 293.665Hz
-        # ド(C): 261.626Hz
-        self.play_tone(349.228, 0.2)
+        """失敗時のメロディー: 悲しい下降音階（約2.5秒）"""
+        # ソ(G4): 391.995Hz
+        # ファ(F4): 349.228Hz
+        # ミ(E4): 329.628Hz
+        # レ(D4): 293.665Hz
+        # ド(C4): 261.626Hz
+        self.play_tone(391.995, 0.3)   # ソ
         time.sleep(0.05)
-        self.play_tone(329.628, 0.2)
+        self.play_tone(349.228, 0.3)   # ファ
         time.sleep(0.05)
-        self.play_tone(293.665, 0.2)
+        self.play_tone(329.628, 0.3)   # ミ
         time.sleep(0.05)
-        self.play_tone(261.626, 0.4)
+        self.play_tone(293.665, 0.3)   # レ
+        time.sleep(0.05)
+        self.play_tone(261.626, 0.6)   # ド（長く悲しく）
 
 
 class Button:
