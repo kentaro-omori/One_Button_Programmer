@@ -251,6 +251,44 @@ class LCD:
 class Programmer:
     """pymcuprog で ATtiny1616 を UPDI 経由で書き込むクラス"""
 
+    def write_fuses(self):
+        """
+        fuseビットを書き込む
+        Returns:
+            bool: 成功時 True、失敗時 False
+        """
+        # pymcuprog コマンドを検出
+        script = shutil.which("pymcuprog")
+        if not script:
+            script = os.path.join(os.path.dirname(sys.executable), "pymcuprog")
+        # 存在・実行権限チェック
+        if not os.path.isfile(script) or not os.access(script, os.X_OK):
+            print("Error: pymcuprog command not found. Please install and ensure it's in PATH.")
+            return False
+        # fuseビット書き込みコマンド構築
+        cmd = [
+            script,
+            "-d", "attiny1616",
+            "-t", "uart",
+            "-u", "/dev/ttyAMA0",
+            "write",
+            "-m", "fuses",
+            "-o", "0x00",
+            "-l", "0x00", "0x00", "0x01", "0xFF", "0x00", "0xF6", "0x04", "0x00", "0x00"
+        ]
+        # デバッグ用: 実行コマンドを表示
+        print(f"Fuseビット書き込み: {' '.join(cmd)}")
+        # コマンド実行 (出力をキャプチャ)
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if result.returncode != 0:
+            print("Fuseビット書き込みエラー:")
+            if result.stdout:
+                print("STDOUT:", result.stdout)
+            if result.stderr:
+                print("STDERR:", result.stderr)
+            return False
+        return True
+
     def write_hex(self, file_path):
         """
         Args:
@@ -258,6 +296,10 @@ class Programmer:
         Returns:
             bool: 成功時 True、失敗時 False
         """
+        # まずfuseビットを書き込む
+        if not self.write_fuses():
+            return False
+        
         # pymcuprog コマンドを検出
         script = shutil.which("pymcuprog")
         if not script:
@@ -276,7 +318,7 @@ class Programmer:
             "--verify",
         ]
         # デバッグ用: 実行コマンドを表示
-        print(f"実行コマンド: {' '.join(cmd)}")
+        print(f"hexファイル書き込み: {' '.join(cmd)}")
         # コマンド実行 (出力をキャプチャ)
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if result.returncode != 0:
