@@ -280,13 +280,15 @@ class Programmer:
         print(f"Fuseビット書き込み: {' '.join(cmd)}")
         # コマンド実行 (出力をキャプチャ)
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        # 実行ログを常に出力
+        if result.stdout:
+            print("STDOUT:", result.stdout)
+        if result.stderr:
+            print("STDERR:", result.stderr)
         if result.returncode != 0:
-            print("Fuseビット書き込みエラー:")
-            if result.stdout:
-                print("STDOUT:", result.stdout)
-            if result.stderr:
-                print("STDERR:", result.stderr)
+            print("Fuseビット書き込みエラー")
             return False
+        print("Fuseビット書き込み成功")
         return True
 
     def write_hex(self, file_path):
@@ -321,13 +323,15 @@ class Programmer:
         print(f"hexファイル書き込み: {' '.join(cmd)}")
         # コマンド実行 (出力をキャプチャ)
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        # 実行ログを常に出力
+        if result.stdout:
+            print("STDOUT:", result.stdout)
+        if result.stderr:
+            print("STDERR:", result.stderr)
         if result.returncode != 0:
-            print("プログラミングエラー:")
-            if result.stdout:
-                print("STDOUT:", result.stdout)
-            if result.stderr:
-                print("STDERR:", result.stderr)
+            print("hexファイル書き込みエラー")
             return False
+        print("hexファイル書き込み成功")
         return True
 
 
