@@ -47,10 +47,13 @@ def on_write_button(channel):
 def on_exit_button(channel):
     """ボタン4割り込みコールバック（プログラム終了）"""
     global exit_button_pressed
+    print(f"★★★ on_exit_button コールバック呼び出し！ channel={channel}, GPIO19状態={GPIO.input(19)} ★★★")
     # 既に処理中の場合は無視（二重実行防止）
     if not exit_button_pressed:
         exit_button_pressed = True
         print("SW4割り込み検出（プログラム終了）")
+    else:
+        print("SW4: 既に終了フラグが立っています")
 
 class LED:
     """GPIO ピン制御用の LED クラス（LOW で点灯、HIGH で消灯）"""
@@ -367,6 +370,16 @@ def main():
     # SW4ボタン（プログラム終了）
     button4 = Button(19, bounce_time=0.3, pull_up=True)
     print(f"SW4 (GPIO19) 初期状態: {GPIO.input(button4.pin)}")
+    print("GPIO19テスト: スイッチを5秒以内に押してください...")
+    test_start = time.time()
+    while time.time() - test_start < 5:
+        current_state = GPIO.input(button4.pin)
+        if current_state == 0:  # スイッチが押された
+            print("GPIO19: スイッチ押下検出！")
+            break
+        time.sleep(0.01)
+    else:
+        print("GPIO19: スイッチ押下が検出されませんでした")
     lcd = LCD(address=0x3e, backlight_pin=6)
 
     # 割り込み設定: SW2押下時にフラグ設定（次のファイルへ）
@@ -383,10 +396,13 @@ def main():
                          bouncetime=300)  # 直接300msを指定
 
     # 割り込み設定: SW4押下時にフラグ設定（プログラム終了）
+    edge_type = GPIO.FALLING if button4.pull_up else GPIO.RISING
+    print(f"SW4割り込み設定: GPIO{button4.pin}, エッジ={'FALLING' if edge_type == GPIO.FALLING else 'RISING'}, コールバック=on_exit_button")
     GPIO.add_event_detect(button4.pin,
-                         GPIO.FALLING if button4.pull_up else GPIO.RISING,
+                         edge_type,
                          callback=on_exit_button,
                          bouncetime=300)  # 直接300msを指定
+    print("SW4割り込み設定完了")
 
     # 割り込み設定: SW1(書き込みボタン)押下時にフラグ設定
     # bouncetimeを長めに設定して二重検出を防止
