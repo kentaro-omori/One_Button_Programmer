@@ -366,6 +366,7 @@ def main():
     button3 = Button(21, bounce_time=0.3, pull_up=True)
     # SW4ボタン（プログラム終了）
     button4 = Button(19, bounce_time=0.3, pull_up=True)
+    print(f"SW4 (GPIO19) 初期状態: {GPIO.input(button4.pin)}")
     lcd = LCD(address=0x3e, backlight_pin=6)
 
     # 割り込み設定: SW2押下時にフラグ設定（次のファイルへ）
@@ -416,9 +417,24 @@ def main():
         lcd.display("No HEX files", line=0)
 
     try:
+        # デバッグ用: GPIO19の状態監視カウンタ
+        debug_counter = 0
+        last_gpio19_state = GPIO.input(button4.pin)
+        
         while True:
-            # プログラム終了チェック
-            if exit_button_pressed:
+            # デバッグ: GPIO19の状態を定期的にチェック（50ループごと）
+            debug_counter += 1
+            if debug_counter % 50 == 0:
+                current_gpio19_state = GPIO.input(button4.pin)
+                if current_gpio19_state != last_gpio19_state:
+                    print(f"GPIO19状態変化: {last_gpio19_state} -> {current_gpio19_state}")
+                    last_gpio19_state = current_gpio19_state
+            
+            # プログラム終了チェック（割り込みフラグ + 直接ポーリング）
+            # プルアップなので、押されたらLOW(0)になる
+            if exit_button_pressed or button4.is_active():
+                if not exit_button_pressed:
+                    print("GPIO19直接検出でプログラム終了")
                 print("プログラムを終了します")
                 lcd.clear()
                 lcd.display("Exiting...", line=0)
