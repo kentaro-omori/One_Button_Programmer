@@ -47,7 +47,7 @@ def on_write_button(channel):
 def on_exit_button(channel):
     """ボタン4割り込みコールバック（プログラム終了）"""
     global exit_button_pressed
-    print(f"★★★ on_exit_button コールバック呼び出し！ channel={channel}, GPIO{channel}状態={GPIO.input(channel)} ★★★")
+    print(f"★★★ on_exit_button コールバック呼び出し！ channel={channel}, GPIO26状態={GPIO.input(26)} ★★★")
     # 既に処理中の場合は無視（二重実行防止）
     if not exit_button_pressed:
         exit_button_pressed = True
@@ -368,30 +368,18 @@ def main():
     # SW3ボタン（前のファイルへ）
     button3 = Button(21, bounce_time=0.3, pull_up=True)
     # SW4ボタン（プログラム終了）
-    # GPIO19の代わりにGPIO26を使用（GPIO19が使用できない可能性があるため）
-    exit_button_pin = 26  # GPIO26に変更
-    button4 = Button(exit_button_pin, bounce_time=0.3, pull_up=True)
-    print(f"SW4 (GPIO{exit_button_pin}) 初期状態: {GPIO.input(button4.pin)}")
-    print(f"GPIO{exit_button_pin}テスト: スイッチを5秒以内に押してください...")
-    print("スイッチを押している間、状態をリアルタイム表示します...")
+    button4 = Button(26, bounce_time=0.3, pull_up=True)
+    print(f"SW4 (GPIO26) 初期状態: {GPIO.input(button4.pin)}")
+    print("GPIO26テスト: スイッチを5秒以内に押してください...")
     test_start = time.time()
-    last_state = GPIO.input(button4.pin)
-    detected = False
     while time.time() - test_start < 5:
         current_state = GPIO.input(button4.pin)
-        if current_state != last_state:
-            print(f"GPIO{exit_button_pin}状態変化: {last_state} -> {current_state}")
-            last_state = current_state
-            if current_state == 0:
-                detected = True
-        if current_state == 0:  # スイッチが押されている
-            print(f"GPIO{exit_button_pin}: 押下中...")
-        time.sleep(0.1)
-    if detected:
-        print(f"GPIO{exit_button_pin}: スイッチ押下検出成功！")
+        if current_state == 0:  # スイッチが押された
+            print("GPIO26: スイッチ押下検出！")
+            break
+        time.sleep(0.01)
     else:
-        print(f"GPIO{exit_button_pin}: スイッチ押下が検出されませんでした")
-        print(f"配線を確認してください: GPIO{exit_button_pin}とGNDの間にスイッチを接続")
+        print("GPIO26: スイッチ押下が検出されませんでした")
     lcd = LCD(address=0x3e, backlight_pin=6)
 
     # 割り込み設定: SW2押下時にフラグ設定（次のファイルへ）
@@ -445,24 +433,24 @@ def main():
         lcd.display("No HEX files", line=0)
 
     try:
-        # デバッグ用: SW4の状態監視カウンタ
+        # デバッグ用: GPIO26の状態監視カウンタ
         debug_counter = 0
-        last_exit_button_state = GPIO.input(button4.pin)
+        last_gpio26_state = GPIO.input(button4.pin)
         
         while True:
-            # デバッグ: SW4の状態を定期的にチェック（50ループごと）
+            # デバッグ: GPIO26の状態を定期的にチェック（50ループごと）
             debug_counter += 1
             if debug_counter % 50 == 0:
-                current_exit_button_state = GPIO.input(button4.pin)
-                if current_exit_button_state != last_exit_button_state:
-                    print(f"GPIO{button4.pin}状態変化: {last_exit_button_state} -> {current_exit_button_state}")
-                    last_exit_button_state = current_exit_button_state
+                current_gpio26_state = GPIO.input(button4.pin)
+                if current_gpio26_state != last_gpio26_state:
+                    print(f"GPIO26状態変化: {last_gpio26_state} -> {current_gpio26_state}")
+                    last_gpio26_state = current_gpio26_state
             
             # プログラム終了チェック（割り込みフラグ + 直接ポーリング）
             # プルアップなので、押されたらLOW(0)になる
             if exit_button_pressed or button4.is_active():
                 if not exit_button_pressed:
-                    print("GPIO19直接検出でプログラム終了")
+                    print("GPIO26直接検出でプログラム終了")
                 print("プログラムを終了します")
                 lcd.clear()
                 lcd.display("Exiting...", line=0)
