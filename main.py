@@ -15,7 +15,6 @@ import shutil
 # イベント検出用フラグ
 file_select_event = False
 file_select_prev_event = False
-exit_button_pressed = False
 
 def on_file_select(channel):
     """ボタン2割り込みコールバック（次のファイルへ）"""
@@ -43,17 +42,6 @@ def on_write_button(channel):
     if not write_button_pressed:
         write_button_pressed = True
         print("SW1割り込み検出")
-
-def on_exit_button(channel):
-    """ボタン4割り込みコールバック（プログラム終了）"""
-    global exit_button_pressed
-    print(f"★★★ on_exit_button コールバック呼び出し！ channel={channel}, GPIO26状態={GPIO.input(26)} ★★★")
-    # 既に処理中の場合は無視（二重実行防止）
-    if not exit_button_pressed:
-        exit_button_pressed = True
-        print("SW4割り込み検出（プログラム終了）")
-    else:
-        print("SW4: 既に終了フラグが立っています")
 
 class LED:
     """GPIO ピン制御用の LED クラス（LOW で点灯、HIGH で消灯）"""
@@ -351,7 +339,6 @@ def main():
     global file_select_event
     global file_select_prev_event
     global write_button_pressed
-    global exit_button_pressed
     # GPIO 初期化
     GPIO.setmode(GPIO.BCM)
 
@@ -367,19 +354,6 @@ def main():
     button2 = Button(20, bounce_time=0.3, pull_up=True)  # 0.01秒→0.3秒に変更
     # SW3ボタン（前のファイルへ）
     button3 = Button(21, bounce_time=0.3, pull_up=True)
-    # SW4ボタン（プログラム終了）
-    button4 = Button(26, bounce_time=0.3, pull_up=True)
-    print(f"SW4 (GPIO26) 初期状態: {GPIO.input(button4.pin)}")
-    print("GPIO26テスト: スイッチを5秒以内に押してください...")
-    test_start = time.time()
-    while time.time() - test_start < 5:
-        current_state = GPIO.input(button4.pin)
-        if current_state == 0:  # スイッチが押された
-            print("GPIO26: スイッチ押下検出！")
-            break
-        time.sleep(0.01)
-    else:
-        print("GPIO26: スイッチ押下が検出されませんでした")
     lcd = LCD(address=0x3e, backlight_pin=6)
 
     # 割り込み設定: SW2押下時にフラグ設定（次のファイルへ）
@@ -394,15 +368,6 @@ def main():
                          GPIO.FALLING if button3.pull_up else GPIO.RISING,
                          callback=on_file_select_prev,
                          bouncetime=300)  # 直接300msを指定
-
-    # 割り込み設定: SW4押下時にフラグ設定（プログラム終了）
-    edge_type = GPIO.FALLING if button4.pull_up else GPIO.RISING
-    print(f"SW4割り込み設定: GPIO{button4.pin}, エッジ={'FALLING' if edge_type == GPIO.FALLING else 'RISING'}, コールバック=on_exit_button")
-    GPIO.add_event_detect(button4.pin,
-                         edge_type,
-                         callback=on_exit_button,
-                         bouncetime=300)  # 直接300msを指定
-    print("SW4割り込み設定完了")
 
     # 割り込み設定: SW1(書き込みボタン)押下時にフラグ設定
     # bouncetimeを長めに設定して二重検出を防止
@@ -433,30 +398,7 @@ def main():
         lcd.display("No HEX files", line=0)
 
     try:
-        # デバッグ用: GPIO26の状態監視カウンタ
-        debug_counter = 0
-        last_gpio26_state = GPIO.input(button4.pin)
-        
         while True:
-            # デバッグ: GPIO26の状態を定期的にチェック（50ループごと）
-            debug_counter += 1
-            if debug_counter % 50 == 0:
-                current_gpio26_state = GPIO.input(button4.pin)
-                if current_gpio26_state != last_gpio26_state:
-                    print(f"GPIO26状態変化: {last_gpio26_state} -> {current_gpio26_state}")
-                    last_gpio26_state = current_gpio26_state
-            
-            # プログラム終了チェック（割り込みフラグ + 直接ポーリング）
-            # プルアップなので、押されたらLOW(0)になる
-            if exit_button_pressed or button4.is_active():
-                if not exit_button_pressed:
-                    print("GPIO26直接検出でプログラム終了")
-                print("プログラムを終了します")
-                lcd.clear()
-                lcd.display("Exiting...", line=0)
-                time.sleep(1)
-                break
-            
             # hexファイル選択: SW2割り込みフラグで次を表示
             if file_select_event:
                 file_select_event = False
@@ -475,7 +417,7 @@ def main():
                     scroll_interrupted = False
                     if len(cur) > 8:
                         # 繰り返しスクロール用の無限ループ
-                        while not file_select_event and not file_select_prev_event and not write_button_pressed and not exit_button_pressed:
+                        while not file_select_event and not file_select_prev_event and not write_button_pressed:
                             scroll_str = cur + " " * 8
                             scroll_len = len(scroll_str)
                             for i in range(scroll_len):
@@ -484,18 +426,18 @@ def main():
                                 # 短い間隔で割り込みチェック
                                 for _ in range(6):  # 0.3秒を0.05秒×6回に分割
                                     time.sleep(0.05)
-                                    if file_select_event or file_select_prev_event or write_button_pressed or exit_button_pressed:
+                                    if file_select_event or file_select_prev_event or write_button_pressed:
                                         break
-                                if file_select_event or file_select_prev_event or write_button_pressed or exit_button_pressed:
+                                if file_select_event or file_select_prev_event or write_button_pressed:
                                     break
                             
                             # スクロール間の待機時間を最小限にし、ほぼ連続的にスクロールする
                             # 待機時間なしで次のスクロールを開始
-                            if not file_select_event and not file_select_prev_event and not write_button_pressed and not exit_button_pressed:
+                            if not file_select_event and not file_select_prev_event and not write_button_pressed:
                                 # スクロール間の待機は必要最小限にする
                                 # 割り込みチェックのために最小限の待機を入れる
                                 time.sleep(0.01)
-                                if file_select_event or file_select_prev_event or write_button_pressed or exit_button_pressed:
+                                if file_select_event or file_select_prev_event or write_button_pressed:
                                     break
                         
                         # スクロール中にファイル選択ボタンが押された場合、フラグを再設定して次のループで確実にファイル切り替えが行われるようにする
@@ -520,7 +462,7 @@ def main():
                     scroll_interrupted = False
                     if len(cur) > 8:
                         # 繰り返しスクロール用の無限ループ
-                        while not file_select_event and not file_select_prev_event and not write_button_pressed and not exit_button_pressed:
+                        while not file_select_event and not file_select_prev_event and not write_button_pressed:
                             scroll_str = cur + " " * 8
                             scroll_len = len(scroll_str)
                             for i in range(scroll_len):
@@ -529,18 +471,18 @@ def main():
                                 # 短い間隔で割り込みチェック
                                 for _ in range(6):  # 0.3秒を0.05秒×6回に分割
                                     time.sleep(0.05)
-                                    if file_select_event or file_select_prev_event or write_button_pressed or exit_button_pressed:
+                                    if file_select_event or file_select_prev_event or write_button_pressed:
                                         break
-                                if file_select_event or file_select_prev_event or write_button_pressed or exit_button_pressed:
+                                if file_select_event or file_select_prev_event or write_button_pressed:
                                     break
                             
                             # スクロール間の待機時間を最小限にし、ほぼ連続的にスクロールする
                             # 待機時間なしで次のスクロールを開始
-                            if not file_select_event and not file_select_prev_event and not write_button_pressed and not exit_button_pressed:
+                            if not file_select_event and not file_select_prev_event and not write_button_pressed:
                                 # スクロール間の待機は必要最小限にする
                                 # 割り込みチェックのために最小限の待機を入れる
                                 time.sleep(0.01)
-                                if file_select_event or file_select_prev_event or write_button_pressed or exit_button_pressed:
+                                if file_select_event or file_select_prev_event or write_button_pressed:
                                     break
                         
                         # スクロール中にファイル選択ボタンが押された場合、フラグを再設定して次のループで確実にファイル切り替えが行われるようにする
@@ -590,7 +532,7 @@ def main():
                         red_led.on()
                         # エラー時はスイッチ押下まで待機
                         while True:
-                            if write_button_pressed or file_select_event or file_select_prev_event or exit_button_pressed:
+                            if write_button_pressed or file_select_event or file_select_prev_event:
                                 red_led.off()
                                 if file_select_event:
                                     file_select_event = False
@@ -598,11 +540,8 @@ def main():
                                     file_select_prev_event = False
                                 if write_button_pressed:
                                     write_button_pressed = False
-                                if exit_button_pressed:
-                                    # 終了ボタンが押された場合は、メインループに戻って終了処理を実行
-                                    break
                                 # ボタンが離されるのを待つ（短い間隔でチェック）
-                                while button.is_active() and not exit_button_pressed:
+                                while button.is_active():
                                     time.sleep(0.05)
                                 break
                             time.sleep(0.05)
