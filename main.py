@@ -399,6 +399,14 @@ def main():
 
     try:
         while True:
+            # SW2とSW3の同時押しチェック（プログラム終了）
+            if button2.is_active() and button3.is_active():
+                print("SW2とSW3同時押し検出 - プログラムを終了します")
+                lcd.clear()
+                lcd.display("Exiting...", line=0)
+                time.sleep(1)
+                break
+            
             # hexファイル選択: SW2割り込みフラグで次を表示
             if file_select_event:
                 file_select_event = False
@@ -417,7 +425,7 @@ def main():
                     scroll_interrupted = False
                     if len(cur) > 8:
                         # 繰り返しスクロール用の無限ループ
-                        while not file_select_event and not file_select_prev_event and not write_button_pressed:
+                        while not file_select_event and not file_select_prev_event and not write_button_pressed and not (button2.is_active() and button3.is_active()):
                             scroll_str = cur + " " * 8
                             scroll_len = len(scroll_str)
                             for i in range(scroll_len):
@@ -426,18 +434,18 @@ def main():
                                 # 短い間隔で割り込みチェック
                                 for _ in range(6):  # 0.3秒を0.05秒×6回に分割
                                     time.sleep(0.05)
-                                    if file_select_event or file_select_prev_event or write_button_pressed:
+                                    if file_select_event or file_select_prev_event or write_button_pressed or (button2.is_active() and button3.is_active()):
                                         break
-                                if file_select_event or file_select_prev_event or write_button_pressed:
+                                if file_select_event or file_select_prev_event or write_button_pressed or (button2.is_active() and button3.is_active()):
                                     break
                             
                             # スクロール間の待機時間を最小限にし、ほぼ連続的にスクロールする
                             # 待機時間なしで次のスクロールを開始
-                            if not file_select_event and not file_select_prev_event and not write_button_pressed:
+                            if not file_select_event and not file_select_prev_event and not write_button_pressed and not (button2.is_active() and button3.is_active()):
                                 # スクロール間の待機は必要最小限にする
                                 # 割り込みチェックのために最小限の待機を入れる
                                 time.sleep(0.01)
-                                if file_select_event or file_select_prev_event or write_button_pressed:
+                                if file_select_event or file_select_prev_event or write_button_pressed or (button2.is_active() and button3.is_active()):
                                     break
                         
                         # スクロール中にファイル選択ボタンが押された場合、フラグを再設定して次のループで確実にファイル切り替えが行われるようにする
@@ -462,7 +470,7 @@ def main():
                     scroll_interrupted = False
                     if len(cur) > 8:
                         # 繰り返しスクロール用の無限ループ
-                        while not file_select_event and not file_select_prev_event and not write_button_pressed:
+                        while not file_select_event and not file_select_prev_event and not write_button_pressed and not (button2.is_active() and button3.is_active()):
                             scroll_str = cur + " " * 8
                             scroll_len = len(scroll_str)
                             for i in range(scroll_len):
@@ -471,18 +479,18 @@ def main():
                                 # 短い間隔で割り込みチェック
                                 for _ in range(6):  # 0.3秒を0.05秒×6回に分割
                                     time.sleep(0.05)
-                                    if file_select_event or file_select_prev_event or write_button_pressed:
+                                    if file_select_event or file_select_prev_event or write_button_pressed or (button2.is_active() and button3.is_active()):
                                         break
-                                if file_select_event or file_select_prev_event or write_button_pressed:
+                                if file_select_event or file_select_prev_event or write_button_pressed or (button2.is_active() and button3.is_active()):
                                     break
                             
                             # スクロール間の待機時間を最小限にし、ほぼ連続的にスクロールする
                             # 待機時間なしで次のスクロールを開始
-                            if not file_select_event and not file_select_prev_event and not write_button_pressed:
+                            if not file_select_event and not file_select_prev_event and not write_button_pressed and not (button2.is_active() and button3.is_active()):
                                 # スクロール間の待機は必要最小限にする
                                 # 割り込みチェックのために最小限の待機を入れる
                                 time.sleep(0.01)
-                                if file_select_event or file_select_prev_event or write_button_pressed:
+                                if file_select_event or file_select_prev_event or write_button_pressed or (button2.is_active() and button3.is_active()):
                                     break
                         
                         # スクロール中にファイル選択ボタンが押された場合、フラグを再設定して次のループで確実にファイル切り替えが行われるようにする
@@ -532,6 +540,13 @@ def main():
                         red_led.on()
                         # エラー時はスイッチ押下まで待機
                         while True:
+                            # SW2とSW3同時押しでプログラム終了
+                            if button2.is_active() and button3.is_active():
+                                print("SW2とSW3同時押し検出（エラー中） - プログラムを終了します")
+                                lcd.clear()
+                                lcd.display("Exiting...", line=0)
+                                time.sleep(1)
+                                raise KeyboardInterrupt
                             if write_button_pressed or file_select_event or file_select_prev_event:
                                 red_led.off()
                                 if file_select_event:
