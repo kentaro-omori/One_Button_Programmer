@@ -83,7 +83,7 @@ class Buzzer:
         """
         # 440Hz の PWM でブザーを鳴動
         pwm = GPIO.PWM(self.pin, 440)
-        pwm.start(80)  # デューティ比 80%（音量大）
+        pwm.start(95)  # デューティ比 95%（音量最大）
         time.sleep(duration_sec)
         pwm.stop()
         GPIO.output(self.pin, GPIO.LOW)
@@ -96,7 +96,7 @@ class Buzzer:
             duration_sec (float): 鳴動時間（秒）
         """
         pwm = GPIO.PWM(self.pin, frequency)
-        pwm.start(80)  # デューティ比 80%（音量大）
+        pwm.start(95)  # デューティ比 95%（音量最大）
         time.sleep(duration_sec)
         pwm.stop()
         GPIO.output(self.pin, GPIO.LOW)
