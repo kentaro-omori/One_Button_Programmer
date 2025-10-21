@@ -76,18 +76,6 @@ class Buzzer:
         GPIO.setup(self.pin, GPIO.OUT)
         GPIO.output(self.pin, GPIO.LOW)
 
-    def buzz(self, duration_sec):
-        """
-        Args:
-            duration_sec (float): 鳴動時間（秒）
-        """
-        # 440Hz の PWM でブザーを鳴動
-        pwm = GPIO.PWM(self.pin, 440)
-        pwm.start(80)  # デューティ比 80%（音量大）
-        time.sleep(duration_sec)
-        pwm.stop()
-        GPIO.output(self.pin, GPIO.LOW)
-    
     def play_tone(self, frequency, duration_sec):
         """
         指定した周波数で指定時間ブザーを鳴らす
@@ -161,30 +149,12 @@ class Button:
         """
         return GPIO.input(self.pin) == self.active_level
         
-    def is_pressed(self):
-        """
-        Returns:
-            bool: 押下検知時に True を返す
-        """
-        if self.is_active():
-            time.sleep(self.bounce_time)
-            if self.is_active():
-                return True
-        return False
-
 
 class LCD:
     """I2C接続のLCDディスプレイクラス"""
     LCD_CONTROL_REGISTER = 0x00
     LCD_DATA_REGISTER = 0x40
-    CMD_FUNCTIONSET = 0x38
-    CMD_BIAS_OSC = 0x14
-    CMD_CONTRAST_SET = 0x70
-    CMD_POWER_ICON_CTRL = 0x5C
-    CMD_FOLLOWER_CTRL = 0x6C
-    CMD_DISPLAY_ON = 0x0C
     CMD_CLEAR = 0x01
-    CMD_ENTRY_MODE = 0x06
 
     def __init__(self, address=0x3e, backlight_pin=None, busnum=1):
         """
@@ -241,11 +211,6 @@ class LCD:
         # データ書込み
         for c in text.ljust(8)[:8]:
             self.bus.write_i2c_block_data(self.address, self.LCD_DATA_REGISTER, [ord(c)])
-
-    def backlight(self, on):
-        """バックライトをオン/オフします."""
-        if self.backlight_pin is not None:
-            GPIO.output(self.backlight_pin, GPIO.HIGH if on else GPIO.LOW)
 
 
 class Programmer:
@@ -422,7 +387,6 @@ def main():
                     lcd.display(nxt[:8].ljust(8), line=1)
                     # 長いファイル名はスクロール (イベント検出で中断)
                     # ボタン操作がない限り繰り返しスクロールする
-                    scroll_interrupted = False
                     if len(cur) > 8:
                         # 繰り返しスクロール用の無限ループ
                         while not file_select_event and not file_select_prev_event and not write_button_pressed and not (button2.is_active() and button3.is_active()):
@@ -467,7 +431,6 @@ def main():
                     lcd.display(nxt[:8].ljust(8), line=1)
                     # 長いファイル名はスクロール (イベント検出で中断)
                     # ボタン操作がない限り繰り返しスクロールする
-                    scroll_interrupted = False
                     if len(cur) > 8:
                         # 繰り返しスクロール用の無限ループ
                         while not file_select_event and not file_select_prev_event and not write_button_pressed and not (button2.is_active() and button3.is_active()):
