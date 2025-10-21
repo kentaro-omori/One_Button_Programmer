@@ -96,7 +96,7 @@ class Buzzer:
             duration_sec (float): 鳴動時間（秒）
         """
         pwm = GPIO.PWM(self.pin, frequency)
-        pwm.start(80)  # デューティ比 80%（音量大）
+        pwm.start(50)  # デューティ比50%で駆動
         time.sleep(duration_sec)
         pwm.stop()
         GPIO.output(self.pin, GPIO.LOW)
