@@ -11,7 +11,7 @@ import RPi.GPIO as GPIO
 import smbus
 import sys
 import shutil
-
+# テストコメント
 # イベント検出用フラグ
 file_select_event = False
 file_select_prev_event = False
@@ -154,7 +154,14 @@ class LCD:
     """I2C接続のLCDディスプレイクラス"""
     LCD_CONTROL_REGISTER = 0x00
     LCD_DATA_REGISTER = 0x40
+    CMD_FUNCTIONSET = 0x38
+    CMD_BIAS_OSC = 0x14
+    CMD_CONTRAST_SET = 0x70
+    CMD_POWER_ICON_CTRL = 0x5C
+    CMD_FOLLOWER_CTRL = 0x6C
+    CMD_DISPLAY_ON = 0x0C
     CMD_CLEAR = 0x01
+    CMD_ENTRY_MODE = 0x06
 
     def __init__(self, address=0x3e, backlight_pin=None, busnum=1):
         """
