@@ -11,7 +11,7 @@ import RPi.GPIO as GPIO
 import smbus
 import sys
 import shutil
-
+# テストコメント
 # イベント検出用フラグ
 file_select_event = False
 file_select_prev_event = False
